@@ -3,25 +3,45 @@ from law_crawler import load_law_changes
 from matcher import load_internal_docs, match_law_to_docs
 import pandas as pd
 
-# Load data
-law_changes = load_law_changes()
-internal_docs = load_internal_docs()
+# 고정된 부서 목록
+departments = [
+    "기획정책과", "운영지원과", "위치기준과", "지리정보과",
+    "스마트공간정보과", "국토조사과", "위성센터"
+]
 
-# Get list of departments from CSV
-departments = internal_docs['소속과'].dropna().unique().tolist()
+# 초기 상태 설정
+if "selected_dept" not in st.session_state:
+    st.session_state.selected_dept = None
 
 st.set_page_config(page_title="법령 변경 반영 시스템", layout="wide")
 st.title("📜 국토지리정보원 법령 변경 매핑 시스템")
 
-# 부서 선택
-selected_dept = st.selectbox("📂 부서를 선택하세요", departments)
+# STEP 1: 부서 선택
+if st.session_state.selected_dept is None:
+    st.subheader("1️⃣ 과(부서)를 선택하세요")
 
-st.markdown("---")
+    cols = st.columns(3)
+    for idx, dept in enumerate(departments):
+        with cols[idx % 3]:
+            if st.button(f"📁 {dept}"):
+                st.session_state.selected_dept = dept
+    st.stop()
 
-# 필터된 내부 문서
+# STEP 2: 선택된 부서의 매핑 결과
+selected_dept = st.session_state.selected_dept
+st.subheader(f"📂 {selected_dept} - 관련 법령 매핑 결과")
+
+# 돌아가기 버튼
+if st.button("⬅️ 부서 선택으로 돌아가기"):
+    st.session_state.selected_dept = None
+    st.experimental_rerun()
+
+# 데이터 로딩
+law_changes = load_law_changes()
+internal_docs = load_internal_docs()
 filtered_docs = internal_docs[internal_docs['소속과'] == selected_dept]
 
-# 각 법령 변경사항에 대해 해당 부서 관련 문서만 매핑
+# 법령 변경사항 → 해당 부서 관련 문서만 매핑
 for change in law_changes:
     matches = match_law_to_docs(change, filtered_docs)
 
