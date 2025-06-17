@@ -3,7 +3,27 @@ import json
 import os
 from modules.utils import load_json_file, highlight_differences
 from modules.law_compare import compare_laws
-from modules.law_api_fetcher import fetch_law_list_from_api
+
+def fetch_law_list_from_api(api_key: str, keyword: str, rows: int = 10):
+    import requests
+    from urllib.parse import urlencode
+
+    base_url = "https://www.law.go.kr/DRF/lawSearch.do"
+    params = {
+        "OC": api_key,
+        "target": "law",
+        "type": "JSON",
+        "section": "lawNm",
+        "query": keyword,
+        "numOfRows": rows
+    }
+    response = requests.get(f"{base_url}?{urlencode(params)}")
+
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("LawSearch", {}).get("law", [])
+    else:
+        return []
 
 st.set_page_config(page_title="NGII 법령 비교 시스템", layout="wide")
 
