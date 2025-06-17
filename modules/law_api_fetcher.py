@@ -24,28 +24,25 @@ def fetch_law_list(oc_code, keyword):
         response.raise_for_status()
         data = response.json()
 
-        # Debugging
-        print("✅ 응답 타입:", type(data))
-        print("📄 응답 예시:", str(data)[:300])
-
-        # Check and return law list if structure matches
+        # 예외 처리: 전체 구조 확인
         if isinstance(data, dict) and "LawSearch" in data:
-            return data["LawSearch"].get("law", [])
+            law_search = data["LawSearch"]
+            if isinstance(law_search, dict):
+                return law_search.get("law", [])
+            else:
+                print("⚠️ 'LawSearch'는 dict가 아님. 타입:", type(law_search))
         else:
-            print("⚠️ 알 수 없는 응답 형식입니다.")
-            return []
+            print("⚠️ 예상된 'LawSearch' 키 없음. 전체 응답 구조:", type(data))
 
     except requests.exceptions.RequestException as req_err:
         print("❌ 요청 오류:", req_err)
-        return []
     except ValueError as val_err:
         print("❌ JSON 파싱 오류:", val_err)
         print("🔍 응답 원문:", response.text[:300])
-        return []
     except Exception as e:
         print("❌ 기타 오류:", e)
-        return []
 
+    return []
 
 def fetch_law_detail(oc_code: str, mst: str, law_type: str = "HTML"):
     """Fetch full law detail content using the public API."""
