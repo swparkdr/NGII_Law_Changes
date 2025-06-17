@@ -1,7 +1,7 @@
 import requests
 import json
 
-def fetch_law_list(keyword: str, oc: str, rows: int = 10, page: int = 1) -> dict:
+def fetch_law_list(keyword: str, oc: str, rows: int = 100, page: int = 1) -> dict:
     url = "http://www.law.go.kr/DRF/lawSearch.do"
     params = {
         "OC": oc,
