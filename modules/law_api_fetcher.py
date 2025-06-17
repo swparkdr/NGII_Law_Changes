@@ -13,13 +13,13 @@ st.markdown("국토지리정보원에서 관리하는 공간정보 관련 법령
 st.sidebar.header("📂 데이터 업로드 / 불러오기")
 
 # 파일 업로드
-uploaded_old = st.sidebar.file_uploader("📎 기존 법령 JSON", type="json", key="old")
-uploaded_new = st.sidebar.file_uploader("📎 변경된 법령 JSON", type="json", key="new")
+uploaded_old = st.sidebar.file_uploader("📌 기존 법령 JSON", type="json", key="old")
+uploaded_new = st.sidebar.file_uploader("📌 변경된 법령 JSON", type="json", key="new")
 
 # 법령 목록 API로 가져오기 (테스트용)
 if st.sidebar.button("🔄 법령 목록 API 불러오기"):
     laws = fetch_law_list_from_api("lhs0623", "공간정보")  # OC, 키워드
-    st.sidebar.success(f"{len(laws)}건의 법령 불러옴")
+    st.sidebar.success(f"{len(laws)}개의 법령 불러옴")
     for law in laws:
         st.sidebar.markdown(f"- {law['법령명한글']}")
 
@@ -59,7 +59,7 @@ if uploaded_old and uploaded_new:
 
     st.divider()
 
-    st.subheader("🧠 3. 변경 요약")
+    st.subheader("🧐 3. 변경 요약")
     added, removed, modified = compare_laws(old_data["조문"], new_data["조문"])
 
     st.markdown(f"- ➕ 추가된 조문: {len(added)}개")
