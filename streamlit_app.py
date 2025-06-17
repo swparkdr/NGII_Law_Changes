@@ -1,9 +1,14 @@
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "modules"))
+
 import streamlit as st
 import json
 import os
-from modules.law_api_fetcher import fetch_law_list, fetch_law_detail
-from modules.law_compare import compare_laws
-from modules.utils import parse_law_json
+from law_api_fetcher import fetch_law_list, fetch_law_detail
+from law_compare import compare_laws
+from utils import load_json_file, highlight_differences
 
 st.set_page_config(page_title="법령 변경 비교 시스템", layout="wide")
 st.title("📘 법령 자동 조회 및 변경 비교 시스템")
