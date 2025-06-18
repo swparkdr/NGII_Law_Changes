@@ -1,54 +1,76 @@
 import streamlit as st
-import os
-import sys
+import requests
+import json
+import difflib
 
-# ✅ 강제 경로 설정 (Streamlit에서 모듈 인식 문제 방지)
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+# 기본 설정
+st.set_page_config(page_title="법령 변경 비교 시스템", layout="wide")
+st.title("📚 국토지리정보원 법령 변경 비교 시스템")
 
-# ✅ modules에서 가져오기
-from modules.law_api_fetcher import fetch_law_list, fetch_law_detail
-from modules.comparator import compare_laws
+# --- 법령 목록 API 불러오기 ---
+def fetch_law_list(oc_code: str, keyword: str, num_rows: int = 100):
+    """API를 통해 법령 목록을 받아온다."""
+    try:
+        url = "https://www.law.go.kr/DRF/lawSearch.do"
+        params = {
+            "OC": oc_code,
+            "target": "law",
+            "query": keyword,
+            "type": "JSON",
+            "numOfRows": num_rows,
+        }
+        res = requests.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        return data["LawSearch"]["law"]
+    except Exception as e:
+        st.error(f"API 호출 실패: {e}")
+        return []
 
-st.set_page_config(page_title="국토지리정보원 법령 변경 비교 시스템", layout="wide")
-st.title("📘 국토지리정보원 법령 변경 비교 시스템")
+# --- 차이 비교 함수 ---
+def compare_texts(old_text: str, new_text: str):
+    diff = difflib.ndiff(old_text.splitlines(), new_text.splitlines())
+    return list(diff)
 
-# 🔹 Step 1: 법령 목록 불러오기
-st.header("1️⃣ 법령 검색 및 불러오기")
-keyword = st.text_input("키워드를 입력하세요 (예: 공간정보)", value="공간정보")
-
-if st.button("법령 목록 가져오기"):
-    with st.spinner("법령 정보를 불러오는 중입니다..."):
-        law_list = fetch_law_list(keyword)
-        if law_list:
-            st.session_state.laws = law_list
-            st.success(f"총 {len(law_list)}건의 법령이 검색되었습니다.")
+def render_diff_as_text(diff):
+    result = ""
+    for line in diff:
+        if line.startswith("- "):
+            result += f"❌ 삭제: {line[2:]}\n"
+        elif line.startswith("+ "):
+            result += f"✅ 추가: {line[2:]}\n"
         else:
-            st.error("❌ 법령을 불러오는 데 실패했습니다.")
+            result += f"    {line[2:]}\n"
+    return result
 
-# 🔹 Step 2: 법령 상세 비교
-if "laws" in st.session_state:
-    st.header("2️⃣ 법령 상세 비교")
+# --- 기능 선택 ---
+tab1, tab2, tab3 = st.tabs(["1️⃣ 법령 검색", "2️⃣ 법령 변경 비교", "3️⃣ 요약 출력"])
 
-    law_titles = [f"{law['법령명한글']} ({law['시행일자']})" for law in st.session_state.laws]
-    selected_indices = st.multiselect("비교할 법령 2개를 선택하세요:", options=list(range(len(law_titles))),
-                                      format_func=lambda i: law_titles[i])
+with tab1:
+    st.subheader("🔍 법령 검색")
+    oc_code = st.text_input("기관 코드 (OC)", value="lhs0623")
+    keyword = st.text_input("검색어 (예: 공간정보)", value="공간정보")
+    if st.button("📥 법령 목록 불러오기"):
+        results = fetch_law_list(oc_code, keyword)
+        if results:
+            for law in results:
+                st.markdown(f"**{law['법령명한글']}**")
+                st.caption(f"- 시행일자: {law['시행일자']}, 공포일자: {law['공포일자']}")
+                st.markdown(
+                    f"[법령 상세 보기](https://www.law.go.kr{law['법령상세링크']})", unsafe_allow_html=True
+                )
 
-    if len(selected_indices) == 2:
-        law1 = st.session_state.laws[selected_indices[0]]
-        law2 = st.session_state.laws[selected_indices[1]]
+with tab2:
+    st.subheader("📄 법령 비교")
+    uploaded_old = st.file_uploader("이전 법령 TXT 업로드", type=["txt"], key="old")
+    uploaded_new = st.file_uploader("변경된 법령 TXT 업로드", type=["txt"], key="new")
 
-        with st.spinner("법령 전문을 불러오는 중입니다..."):
-            content1 = fetch_law_detail(law1)
-            content2 = fetch_law_detail(law2)
+    if uploaded_old and uploaded_new:
+        old_text = uploaded_old.read().decode("utf-8")
+        new_text = uploaded_new.read().decode("utf-8")
+        diff = compare_texts(old_text, new_text)
+        st.code(render_diff_as_text(diff), language="text")
 
-        if content1 and content2:
-            st.subheader("비교 결과 (문단 단위 분석)")
-            differences = compare_laws(content1, content2)
-            for block in differences:
-                st.markdown(block, unsafe_allow_html=True)
-        else:
-            st.error("❌ 두 법령 전문을 모두 불러오는 데 실패했습니다.")
-
-# 🔹 Footer
-st.markdown("---")
-st.caption("Made by NGII. Powered by 국가법령정보센터 OpenAPI.")
+with tab3:
+    st.subheader("🧠 요약 보기")
+    st.info("이 기능은 향후 자연어 요약 기능이 추가될 예정입니다.")
