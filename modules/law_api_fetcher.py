@@ -22,23 +22,28 @@ def fetch_law_list(oc_code, keyword):
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        data = response.json()
 
-        # 예외 처리: 전체 구조 확인
-        if isinstance(data, dict) and "LawSearch" in data:
-            law_search = data["LawSearch"]
-            if isinstance(law_search, dict):
-                return law_search.get("law", [])
+        print("📥 Raw response (text):", response.text[:300], "\n---")
+        data = response.json()
+        print("📦 Parsed JSON data:", data)
+
+        # 정확한 구조 확인 후 처리
+        if isinstance(data, dict):
+            if "LawSearch" in data:
+                law_search = data["LawSearch"]
+                if isinstance(law_search, dict) and "law" in law_search:
+                    return law_search["law"]
+                else:
+                    print("❌ 'LawSearch'는 dict가 아니거나 'law' 키가 없음.")
             else:
-                print("⚠️ 'LawSearch'는 dict가 아님. 타입:", type(law_search))
+                print("❌ 'LawSearch' 키가 존재하지 않음.")
         else:
-            print("⚠️ 예상된 'LawSearch' 키 없음. 전체 응답 구조:", type(data))
+            print("❌ JSON 응답이 dict 타입이 아님:", type(data))
 
     except requests.exceptions.RequestException as req_err:
         print("❌ 요청 오류:", req_err)
     except ValueError as val_err:
         print("❌ JSON 파싱 오류:", val_err)
-        print("🔍 응답 원문:", response.text[:300])
     except Exception as e:
         print("❌ 기타 오류:", e)
 
