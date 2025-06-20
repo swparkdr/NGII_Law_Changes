@@ -1,27 +1,24 @@
 import requests
 import xml.etree.ElementTree as ET
 
-def fetch_law_list(oc_code: str, keyword: str, num_rows: int = 100):
-    """API를 통해 법령 목록을 받아온다."""
+def fetch_law_versions(oc_code, law_id):
     try:
-        url = "https://www.law.go.kr/DRF/lawSearch.do"
+        url = "https://www.law.go.kr/DRF/lawSearchList.do"
         params = {
             "OC": oc_code,
             "target": "law",
-            "query": keyword,
+            "id": law_id,
             "type": "JSON",
-            "numOfRows": num_rows,
         }
         res = requests.get(url, params=params, timeout=10)
         res.raise_for_status()
         data = res.json()
-        return data["LawSearch"]["law"]
+        return data["LawSearchList"]["law"]
     except Exception as e:
-        print(f"API 호출 실패: {e}")
+        print(f"API 버전 목록 호출 실패: {e}")
         return []
 
 def fetch_law_detail(oc_code: str, mst: str):
-    """법령 조문을 XML 형태로 받아오기"""
     try:
         url = "https://www.law.go.kr/DRF/lawService.do"
         params = {
@@ -38,7 +35,6 @@ def fetch_law_detail(oc_code: str, mst: str):
         return ""
 
 def extract_plaintext_from_xml(xml_string):
-    """법령 XML에서 조문 본문 텍스트 추출"""
     try:
         root = ET.fromstring(xml_string)
         texts = []
